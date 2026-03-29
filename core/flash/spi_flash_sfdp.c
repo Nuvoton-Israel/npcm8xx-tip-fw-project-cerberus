@@ -597,6 +597,14 @@ bool spi_flash_sfdp_supports_4byte_commands (const struct spi_flash_sfdp_basic_t
 				opcodes_4b = true;
 			}
 		}
+		else if (table->sfdp->vendor == FLASH_ID_GIGADEVICE) {
+			/* GigaDevice flash devices >=256Mb support a dedicated 4-byte address instruction
+			 * set (e.g. 0x0C, 0x12, 0x6C, 0xEC) but do not set the SPI_FLASH_SFDP_4B_OPCODES
+			 * bit in the SFDP table.  Apply the same vendor override used for Macronix. */
+			if (FLASH_ID_DEVICE_CAPACITY (table->sfdp->device) >= 0x19) {
+				opcodes_4b = true;
+			}
+		}
 		else if (table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
 			params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 			if (params->enter_4b & SPI_FLASH_SFDP_4B_OPCODES) {

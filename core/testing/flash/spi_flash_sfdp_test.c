@@ -350,6 +350,44 @@ const uint32_t SFDP_PARAMS_W25Q512JV[] = {
 const size_t SFDP_PARAMS_W25Q512JV_LEN = sizeof (SFDP_PARAMS_W25Q512JV);
 
 
+/* GigaDevice flash */
+
+/* GD25Q512 */
+const uint8_t FLASH_ID_GD25Q512[] = {0xc8, 0x60, 0x1a};
+
+const uint32_t SFDP_HEADER_GD25Q512[] = {
+	0x50444653,
+	0xff020107,
+	0x14010700,
+	0xff000030
+};
+
+const size_t SFDP_HEADER_GD25Q512_LEN = sizeof (SFDP_HEADER_GD25Q512);
+
+const uint32_t SFDP_PARAMS_ADDR_GD25Q512 = 0x000030;
+
+const uint32_t SFDP_PARAMS_GD25Q512[] = {
+	0xfff320e5,
+	0x1fffffff,
+	0x6b08eb44,
+	0xbb423b08,
+	0xfffffffe,
+	0xff00ffff,
+	0xeb44ffff,
+	0x520f200c,
+	0xff00d810,
+	0xfea539d4,
+	0x5814d882,
+	0x331662ec,
+	0x757a757a,
+	0x5cd5bd04,
+	0x00140629,
+	0x01005008
+};
+
+const size_t SFDP_PARAMS_GD25Q512_LEN = sizeof (SFDP_PARAMS_GD25Q512);
+
+
 /* Micron flash */
 
 /* MT25Q256ABA */
@@ -1538,6 +1576,55 @@ static void spi_flash_sfdp_test_get_device_capabilities_s28hs02gt (CuTest *test)
 	spi_flash_sfdp_release (&sfdp);
 }
 
+static void spi_flash_sfdp_test_get_device_capabilities_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	uint32_t capabilities;
+	uint32_t expected;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	expected = FLASH_CAP_DUAL_1_1_2 | FLASH_CAP_DUAL_1_2_2 | FLASH_CAP_QUAD_1_1_4 |
+		FLASH_CAP_QUAD_1_4_4 | FLASH_CAP_QUAD_4_4_4 | FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR;
+
+	status = spi_flash_sfdp_get_device_capabilities (&table, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, expected, capabilities);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
 static void spi_flash_sfdp_test_get_device_capabilities_supports_dpi (CuTest *test)
 {
 	struct flash_master_mock flash;
@@ -2351,6 +2438,49 @@ static void spi_flash_sfdp_test_get_device_size_s28hs02gt (CuTest *test)
 
 	status = spi_flash_sfdp_get_device_size (&table);
 	CuAssertIntEquals (test, (256 * 1024 * 1024), status);	// 256MB (2Gb)
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
+static void spi_flash_sfdp_test_get_device_size_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_get_device_size (&table);
+	CuAssertIntEquals (test, 67108864, status);
 
 	status = flash_master_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -3424,6 +3554,74 @@ static void spi_flash_sfdp_test_get_read_commands_s28hs02gt (CuTest *test)
 	spi_flash_sfdp_release (&sfdp);
 }
 
+static void spi_flash_sfdp_test_get_read_commands_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	struct spi_flash_sfdp_read_commands read;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_get_read_commands (&table, &read);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 0x3b, read.dual_1_1_2.opcode);
+	CuAssertIntEquals (test, 1, read.dual_1_1_2.dummy_bytes);
+	CuAssertIntEquals (test, 0, read.dual_1_1_2.mode_bytes);
+
+	CuAssertIntEquals (test, 0xbb, read.dual_1_2_2.opcode);
+	CuAssertIntEquals (test, 0, read.dual_1_2_2.dummy_bytes);
+	CuAssertIntEquals (test, 1, read.dual_1_2_2.mode_bytes);
+
+	CuAssertIntEquals (test, 0, read.dual_2_2_2.opcode);
+	CuAssertIntEquals (test, 0, read.dual_2_2_2.dummy_bytes);
+	CuAssertIntEquals (test, 0, read.dual_2_2_2.mode_bytes);
+
+	CuAssertIntEquals (test, 0x6b, read.quad_1_1_4.opcode);
+	CuAssertIntEquals (test, 1, read.quad_1_1_4.dummy_bytes);
+	CuAssertIntEquals (test, 0, read.quad_1_1_4.mode_bytes);
+
+	CuAssertIntEquals (test, 0xeb, read.quad_1_4_4.opcode);
+	CuAssertIntEquals (test, 2, read.quad_1_4_4.dummy_bytes);
+	CuAssertIntEquals (test, 1, read.quad_1_4_4.mode_bytes);
+
+	CuAssertIntEquals (test, 0xeb, read.quad_4_4_4.opcode);
+	CuAssertIntEquals (test, 2, read.quad_4_4_4.dummy_bytes);
+	CuAssertIntEquals (test, 1, read.quad_4_4_4.mode_bytes);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
 static void spi_flash_sfdp_test_get_read_commands_supports_dpi (CuTest *test)
 {
 	struct flash_master_mock flash;
@@ -4231,6 +4429,50 @@ static void spi_flash_sfdp_test_use_busy_flag_status_s28hs02gt (CuTest *test)
 	spi_flash_sfdp_release (&sfdp);
 }
 
+static void spi_flash_sfdp_test_use_busy_flag_status_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	bool use_flag;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	use_flag = spi_flash_sfdp_use_busy_flag_status (&table);
+	CuAssertIntEquals (test, false, use_flag);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
 static void spi_flash_sfdp_test_use_busy_flag_status_null (CuTest *test)
 {
 	struct flash_master_mock flash;
@@ -4859,6 +5101,50 @@ static void spi_flash_sfdp_test_use_volatile_write_enable_s28hs02gt (CuTest *tes
 
 	volatile_enable = spi_flash_sfdp_use_volatile_write_enable (&table);
 	CuAssertIntEquals (test, false, volatile_enable);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
+static void spi_flash_sfdp_test_use_volatile_write_enable_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	bool use_volatile;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	use_volatile = spi_flash_sfdp_use_volatile_write_enable (&table);
+	CuAssertIntEquals (test, false, use_volatile);
 
 	status = flash_master_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -5637,6 +5923,50 @@ static void spi_flash_sfdp_test_supports_4byte_commands_s28hs02gt (CuTest *test)
 	spi_flash_sfdp_release (&sfdp);
 }
 
+static void spi_flash_sfdp_test_supports_4byte_commands_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	bool support_4byte;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	support_4byte = spi_flash_sfdp_supports_4byte_commands (&table);
+	CuAssertIntEquals (test, true, support_4byte);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
 static void spi_flash_sfdp_test_supports_4byte_commands_null (CuTest *test)
 {
 	struct flash_master_mock flash;
@@ -6278,6 +6608,51 @@ static void spi_flash_sfdp_test_get_4byte_mode_switch_s28hs02gt (CuTest *test)
 	status = spi_flash_sfdp_get_4byte_mode_switch (&table, &switch_4byte);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET, switch_4byte);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
+static void spi_flash_sfdp_test_get_4byte_mode_switch_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	enum spi_flash_sfdp_4byte_addressing switch_4byte;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_get_4byte_mode_switch (&table, &switch_4byte);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPI_FLASH_SFDP_4BYTE_MODE_COMMAND, switch_4byte);
 
 	status = flash_master_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -7401,6 +7776,51 @@ static void spi_flash_sfdp_test_get_quad_enable_s28hs02gt (CuTest *test)
 	status = spi_flash_sfdp_get_quad_enable (&table, &quad);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPI_FLASH_SFDP_QUAD_NO_QE_BIT, quad);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
+static void spi_flash_sfdp_test_get_quad_enable_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	enum spi_flash_sfdp_quad_enable quad;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_get_quad_enable (&table, &quad);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2, quad);
 
 	status = flash_master_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -8581,6 +9001,50 @@ static void spi_flash_sfdp_test_exit_4byte_mode_on_reset_s28hs02gt (CuTest *test
 	spi_flash_sfdp_release (&sfdp);
 }
 
+static void spi_flash_sfdp_test_exit_4byte_mode_on_reset_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	bool exit_4byte;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	exit_4byte = spi_flash_sfdp_exit_4byte_mode_on_reset (&table);
+	CuAssertIntEquals (test, false, exit_4byte);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
 static void spi_flash_sfdp_test_exit_4byte_mode_on_reset_no_revert (CuTest *test)
 {
 	struct flash_master_mock flash;
@@ -9304,6 +9768,51 @@ static void spi_flash_sfdp_test_get_reset_command_s28hs02gt (CuTest *test)
 	spi_flash_sfdp_release (&sfdp);
 }
 
+static void spi_flash_sfdp_test_get_reset_command_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	uint8_t reset;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_get_reset_command (&table, &reset);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, FLASH_CMD_RST, reset);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
 static void spi_flash_sfdp_test_get_reset_command_f0 (CuTest *test)
 {
 	struct flash_master_mock flash;
@@ -9850,6 +10359,49 @@ static void spi_flash_sfdp_test_get_page_size_mx25l25635f (CuTest *test)
 		SFDP_PARAMS_MX25L25635F_LEN,
 		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_MX25L25635F, 1, -1,
 			SFDP_PARAMS_MX25L25635F_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_get_page_size (&table);
+	CuAssertIntEquals (test, 256, status);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
+static void spi_flash_sfdp_test_get_page_size_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -11158,6 +11710,53 @@ static void spi_flash_sfdp_test_get_deep_powerdown_commands_s28hs02gt (CuTest *t
 	spi_flash_sfdp_release (&sfdp);
 }
 
+static void spi_flash_sfdp_test_get_deep_powerdown_commands_gd25q512 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	uint8_t enter;
+	uint8_t exit;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, SFDP_HEADER_GD25Q512,
+		FLASH_ID_GD25Q512);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) SFDP_PARAMS_GD25Q512,
+		SFDP_PARAMS_GD25Q512_LEN,
+		FLASH_EXP_READ_CMD (0x5a, SFDP_PARAMS_ADDR_GD25Q512, 1, -1, SFDP_PARAMS_GD25Q512_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_get_deep_powerdown_commands (&table, &enter, &exit);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, FLASH_CMD_DP, enter);
+	CuAssertIntEquals (test, FLASH_CMD_RDP, exit);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
 static void spi_flash_sfdp_test_get_deep_powerdown_commands_non_standard (CuTest *test)
 {
 	struct flash_master_mock flash;
@@ -11464,6 +12063,7 @@ TEST (spi_flash_sfdp_test_get_device_capabilities_mt25q256aba);
 TEST (spi_flash_sfdp_test_get_device_capabilities_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_get_device_capabilities_sst26vf064b);
 TEST (spi_flash_sfdp_test_get_device_capabilities_s28hs02gt);
+TEST (spi_flash_sfdp_test_get_device_capabilities_gd25q512);
 TEST (spi_flash_sfdp_test_get_device_capabilities_supports_dpi);
 TEST (spi_flash_sfdp_test_get_device_capabilities_spi_only);
 TEST (spi_flash_sfdp_test_get_device_capabilities_4byte_only);
@@ -11481,6 +12081,7 @@ TEST (spi_flash_sfdp_test_get_device_size_mt25q256aba);
 TEST (spi_flash_sfdp_test_get_device_size_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_get_device_size_sst26vf064b);
 TEST (spi_flash_sfdp_test_get_device_size_s28hs02gt);
+TEST (spi_flash_sfdp_test_get_device_size_gd25q512);
 TEST (spi_flash_sfdp_test_get_device_size_8gb);
 TEST (spi_flash_sfdp_test_get_device_size_16gb);
 TEST (spi_flash_sfdp_test_get_device_size_null);
@@ -11497,6 +12098,7 @@ TEST (spi_flash_sfdp_test_get_read_commands_mt25q256aba);
 TEST (spi_flash_sfdp_test_get_read_commands_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_get_read_commands_sst26vf064b);
 TEST (spi_flash_sfdp_test_get_read_commands_s28hs02gt);
+TEST (spi_flash_sfdp_test_get_read_commands_gd25q512);
 TEST (spi_flash_sfdp_test_get_read_commands_supports_dpi);
 TEST (spi_flash_sfdp_test_get_read_commands_spi_only);
 TEST (spi_flash_sfdp_test_get_read_commands_null);
@@ -11513,6 +12115,7 @@ TEST (spi_flash_sfdp_test_use_busy_flag_status_mt25q256aba);
 TEST (spi_flash_sfdp_test_use_busy_flag_status_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_use_busy_flag_status_sst26vf064b);
 TEST (spi_flash_sfdp_test_use_busy_flag_status_s28hs02gt);
+TEST (spi_flash_sfdp_test_use_busy_flag_status_gd25q512);
 TEST (spi_flash_sfdp_test_use_busy_flag_status_null);
 TEST (spi_flash_sfdp_test_use_volatile_write_enable_mx25l1606e);
 TEST (spi_flash_sfdp_test_use_volatile_write_enable_mx25l25635f);
@@ -11527,6 +12130,7 @@ TEST (spi_flash_sfdp_test_use_volatile_write_enable_mt25q256aba);
 TEST (spi_flash_sfdp_test_use_volatile_write_enable_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_use_volatile_write_enable_sst26vf064b);
 TEST (spi_flash_sfdp_test_use_volatile_write_enable_s28hs02gt);
+TEST (spi_flash_sfdp_test_use_volatile_write_enable_gd25q512);
 TEST (spi_flash_sfdp_test_use_volatile_write_enable_volatile_only);
 TEST (spi_flash_sfdp_test_use_volatile_write_enable_both_volatile_and_nv);
 TEST (spi_flash_sfdp_test_use_volatile_write_enable_null);
@@ -11543,6 +12147,7 @@ TEST (spi_flash_sfdp_test_supports_4byte_commands_mt25q256aba);
 TEST (spi_flash_sfdp_test_supports_4byte_commands_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_supports_4byte_commands_sst26vf064b);
 TEST (spi_flash_sfdp_test_supports_4byte_commands_s28hs02gt);
+TEST (spi_flash_sfdp_test_supports_4byte_commands_gd25q512);
 TEST (spi_flash_sfdp_test_supports_4byte_commands_null);
 TEST (spi_flash_sfdp_test_get_4byte_mode_switch_mx25l1606e);
 TEST (spi_flash_sfdp_test_get_4byte_mode_switch_mx25l25635f);
@@ -11557,6 +12162,7 @@ TEST (spi_flash_sfdp_test_get_4byte_mode_switch_mt25q256aba);
 TEST (spi_flash_sfdp_test_get_4byte_mode_switch_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_get_4byte_mode_switch_sst26vf064b);
 TEST (spi_flash_sfdp_test_get_4byte_mode_switch_s28hs02gt);
+TEST (spi_flash_sfdp_test_get_4byte_mode_switch_gd25q512);
 TEST (spi_flash_sfdp_test_get_4byte_mode_switch_fixed_4byte_address_mode_v1_5);
 TEST (spi_flash_sfdp_test_get_4byte_mode_switch_fixed_4byte_address_mode_v1_0);
 TEST (spi_flash_sfdp_test_get_4byte_mode_switch_only_extended_addr_reg);
@@ -11578,6 +12184,7 @@ TEST (spi_flash_sfdp_test_get_quad_enable_mt25q256aba);
 TEST (spi_flash_sfdp_test_get_quad_enable_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_get_quad_enable_sst26vf064b);
 TEST (spi_flash_sfdp_test_get_quad_enable_s28hs02gt);
+TEST (spi_flash_sfdp_test_get_quad_enable_gd25q512);
 TEST (spi_flash_sfdp_test_get_quad_enable_no_qe_bit_no_hold_disable);
 TEST (spi_flash_sfdp_test_get_quad_enable_bit1_sr2_with_clear);
 TEST (spi_flash_sfdp_test_get_quad_enable_bit7_sr2);
@@ -11600,6 +12207,7 @@ TEST (spi_flash_sfdp_test_exit_4byte_mode_on_reset_mt25q256aba);
 TEST (spi_flash_sfdp_test_exit_4byte_mode_on_reset_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_exit_4byte_mode_on_reset_sst26vf064b);
 TEST (spi_flash_sfdp_test_exit_4byte_mode_on_reset_s28hs02gt);
+TEST (spi_flash_sfdp_test_exit_4byte_mode_on_reset_gd25q512);
 TEST (spi_flash_sfdp_test_exit_4byte_mode_on_reset_no_revert);
 TEST (spi_flash_sfdp_test_exit_4byte_mode_on_reset_null);
 TEST (spi_flash_sfdp_test_get_reset_command_mx25l1606e);
@@ -11615,6 +12223,7 @@ TEST (spi_flash_sfdp_test_get_reset_command_mt25q256aba);
 TEST (spi_flash_sfdp_test_get_reset_command_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_get_reset_command_sst26vf064b);
 TEST (spi_flash_sfdp_test_get_reset_command_s28hs02gt);
+TEST (spi_flash_sfdp_test_get_reset_command_gd25q512);
 TEST (spi_flash_sfdp_test_get_reset_command_f0);
 TEST (spi_flash_sfdp_test_get_reset_command_both_f0_and_66);
 TEST (spi_flash_sfdp_test_get_reset_command_no_soft_reset);
@@ -11635,6 +12244,7 @@ TEST (spi_flash_sfdp_test_get_page_size_mt25q256aba);
 TEST (spi_flash_sfdp_test_get_page_size_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_get_page_size_sst26vf064b);
 TEST (spi_flash_sfdp_test_get_page_size_s28hs02gt);
+TEST (spi_flash_sfdp_test_get_page_size_gd25q512);
 TEST (spi_flash_sfdp_test_get_page_size_128_byte_page);
 TEST (spi_flash_sfdp_test_get_page_size_max_page_size);
 TEST (spi_flash_sfdp_test_get_page_size_null);
@@ -11651,6 +12261,7 @@ TEST (spi_flash_sfdp_test_get_deep_powerdown_commands_mt25q256aba);
 TEST (spi_flash_sfdp_test_get_deep_powerdown_commands_mt35xu02gcba);
 TEST (spi_flash_sfdp_test_get_deep_powerdown_commands_sst26vf064b);
 TEST (spi_flash_sfdp_test_get_deep_powerdown_commands_s28hs02gt);
+TEST (spi_flash_sfdp_test_get_deep_powerdown_commands_gd25q512);
 TEST (spi_flash_sfdp_test_get_deep_powerdown_commands_non_standard);
 TEST (spi_flash_sfdp_test_get_deep_powerdown_commands_not_supported);
 TEST (spi_flash_sfdp_test_get_deep_powerdown_commands_old_table_version);

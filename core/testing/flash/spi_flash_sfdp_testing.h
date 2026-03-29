@@ -156,4 +156,18 @@ extern const uint32_t SFDP_PARAMS_S28HS02GT[];
 extern const size_t SFDP_PARAMS_S28HS02GT_LEN;
 
 
+/* GigaDevice flash */
+
+/* GD25Q512 */
+extern const uint8_t FLASH_ID_GD25Q512[];
+
+extern const uint32_t SFDP_HEADER_GD25Q512[];
+extern const size_t SFDP_HEADER_GD25Q512_LEN;
+
+extern const uint32_t SFDP_PARAMS_ADDR_GD25Q512;
+
+extern const uint32_t SFDP_PARAMS_GD25Q512[];
+extern const size_t SFDP_PARAMS_GD25Q512_LEN;
+
+
 #endif	/* SPI_FLASH_SFDP_TESTING_H_ */

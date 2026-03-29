@@ -73,6 +73,7 @@ enum {
 	FLASH_ID_MICROCHIP = 0xbf,	/**< Microchip manufacturer ID. */
 	FLASH_ID_MACRONIX = 0xc2,	/**< Macronix manufacturer ID. */
 	FLASH_ID_WINBOND = 0xef,	/**< Winbond manufacturer ID. */
+	FLASH_ID_GIGADEVICE = 0xc8,	/**< GigaDevice manufacturer ID. */
 };
 
 /**

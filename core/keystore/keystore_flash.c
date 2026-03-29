@@ -48,6 +48,11 @@ int keystore_flash_load_key (const struct keystore *store, int id, uint8_t **key
 		return key_len;
 	}
 
+	/* NTIL: added in IGPS 4.3.3 */
+	if ((key_len == 0) || (key_len > 0x10000)) {
+	 	return KEYSTORE_NO_KEY;
+ 	}
+
 	*key = platform_malloc (key_len);
 	if (*key == NULL) {
 		return KEYSTORE_NO_MEMORY;

@@ -13,10 +13,12 @@
 
 /* Status bits indicating when flash is operating in 4-byte address mode. */
 #define	MACRONIX_4BYTE_STATUS		(1U << 5)
+#define	GIGADEVICE_4BYTE_STATUS		(1U << 3)  /* ADS bit: current address mode */
 #define	WINBOND_4BYTE_STATUS		(1U << 0)
 #define	MICRON_4BYTE_STATES			(1U << 0)
 
 /* Config bits indicating address mode on reset. */
+#define	GIGADEVICE_4BYTE_DEFAULT	(1U << 4)  /* ADP bit: default address mode */
 #define	WINBOND_4BYTE_DEFAULT		(1U << 1)
 #define	MICRON_4BYTE_DEFAULT		(1U << 0)
 
@@ -911,6 +913,9 @@ int spi_flash_discover_device_properties (const struct spi_flash *flash,
 		return status;
 	}
 
+	spi_flash_sfdp_dump_basic_table(&parameters);
+	spi_flash_sfdp_dump_header(sfdp);
+
 	platform_mutex_lock (&flash->state->lock);
 
 	spi_flash_sfdp_get_device_capabilities (&parameters, &flash->state->capabilities);
@@ -1622,6 +1627,11 @@ int spi_flash_is_4byte_address_mode_on_reset (const struct spi_flash *flash)
 			mask = MICRON_4BYTE_DEFAULT;
 			break;
 
+		case FLASH_ID_GIGADEVICE:
+			cmd = FLASH_CMD_RDSR3;
+			mask = GIGADEVICE_4BYTE_DEFAULT;
+			break;
+
 		default:
 			return SPI_FLASH_UNSUPPORTED_DEVICE;
 	}
@@ -1792,6 +1802,11 @@ int spi_flash_detect_4byte_address_mode (const struct spi_flash *flash)
 		case FLASH_ID_MICRON_X:
 			mask = MICRON_4BYTE_STATES;
 			cmd = FLASH_CMD_RDSR_FLAG;
+			break;
+
+		case FLASH_ID_GIGADEVICE:
+			mask = GIGADEVICE_4BYTE_STATUS;
+			cmd = FLASH_CMD_RDSR3;
 			break;
 
 		default:

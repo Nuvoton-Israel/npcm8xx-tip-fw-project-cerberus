@@ -753,8 +753,16 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 					 * read individually using command code 0x35. */
 					quad = SPI_FLASH_SFDP_QER_BIT1_SR2_35;
 				}
+				else if ((table->sfdp->vendor == FLASH_ID_WINBOND) &&
+					(FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_W25Q_DTR)) {
+					/* Newer Winbond W25Q devices with SFDP BFPT v1.7+ report QER value 6,
+					 * which is valid in JESD216C+ but treated as reserved here. The actual
+					 * quad enable method is the same as QER 5: bit 1 of SR2, read via 0x35. */
+					quad = SPI_FLASH_SFDP_QER_BIT1_SR2_35;
+					break;
+				}
 				break;
-
+			
 			case SPI_FLASH_SFDP_QER_NO_QUAD_ENABLE:
 				if (params->quad_enable & SPI_FLASH_SFDP_HOLD_RST_DISABLE) {
 					quad = SPI_FLASH_SFDP_QUAD_NO_QE_HOLD_DISABLE;

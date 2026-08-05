@@ -741,6 +741,14 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 					quad = SPI_FLASH_SFDP_QUAD_NO_QE_BIT;
 					break;
 				}
+				else if ((quad == SPI_FLASH_SFDP_QER_RESERVED1) &&
+					(table->sfdp->vendor == FLASH_ID_WINBOND) &&
+					(FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_W25Q_DTR)) {
+					/* JESD216C+ QER value 6 uses bit 1 of SR2, read with 0x35 and
+					 * written independently with 0x31. */
+					quad = SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35_31;
+					break;
+				}
 				else {
 					return SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN;
 				}
@@ -752,14 +760,6 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 					 * It should report SPI_FLASH_SFDP_QER_BIT1_SR2_35 instead, since SR2 must be
 					 * read individually using command code 0x35. */
 					quad = SPI_FLASH_SFDP_QER_BIT1_SR2_35;
-				}
-				else if ((table->sfdp->vendor == FLASH_ID_WINBOND) &&
-					(FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_W25Q_DTR)) {
-					/* Newer Winbond W25Q devices with SFDP BFPT v1.7+ report QER value 6,
-					 * which is valid in JESD216C+ but treated as reserved here. The actual
-					 * quad enable method is the same as QER 5: bit 1 of SR2, read via 0x35. */
-					quad = SPI_FLASH_SFDP_QER_BIT1_SR2_35;
-					break;
 				}
 				break;
 			

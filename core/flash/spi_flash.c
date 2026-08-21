@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include "defs_utils.h"
 #include "spi_flash.h"
 #include "common/unused.h"
 #include "flash/flash_common.h"
@@ -127,6 +128,10 @@ static void spi_flash_set_device_commands (const struct spi_flash *flash,
 
 	use_4byte = ((flash->state->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) ==
 		(FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR));
+
+	if (flash->state->device_size <= _16MB_) {
+		use_4byte = 0;
+	}
 
 	if (read && (flash->state->capabilities & FLASH_CAP_QUAD_1_4_4)) {
 		spi_flash_configure_read_command (flash, &read->quad_1_4_4, FLASH_CMD_4BYTE_QIO_READ,

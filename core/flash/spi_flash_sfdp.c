@@ -732,7 +732,6 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 		quad = SPI_FLASH_SFDP_QER (params->quad_enable);
 
 		switch (quad) {
-			case SPI_FLASH_SFDP_QER_BIT1_SR2_35_31:
 			case SPI_FLASH_SFDP_QER_RESERVED:
 				if (table->sfdp->vendor == FLASH_ID_MICRON_X) {
 					/* The Micron Xcella flash device follows SFDP parameter version 1.6,
@@ -741,18 +740,25 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 					quad = SPI_FLASH_SFDP_QUAD_NO_QE_BIT;
 					break;
 				}
-				else if ((quad == SPI_FLASH_SFDP_QER_BIT1_SR2_35_31) &&
-					(table->sfdp->vendor == FLASH_ID_WINBOND) &&
-					(FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_W25Q_DTR)) {
-					/* JESD216C+ QER value 6 uses bit 1 of SR2, read with 0x35 and
-					 * written independently with 0x31. */
-					quad = SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35_31;
-					break;
-				}
 				else {
 					return SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN;
 				}
-
+			case SPI_FLASH_SFDP_QER_BIT1_SR2_35_31:
+				if 	((table->sfdp->vendor == FLASH_ID_WINBOND) &&
+					(FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_W25Q_DTR)) {
+					/* JESD216C+ QER value 6 uses bit 1 of SR2, read with 0x35 and
+					* written independently with 0x31. */
+					quad = SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35_31;
+					break;
+				}
+				else if ((table->sfdp->vendor == FLASH_ID_WINBOND) &&
+					(FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_W25Q)) {
+					/* Winbond WQ25 devices incorrectly reports QER value 6 in the SFDP table.
+					* It should report SPI_FLASH_SFDP_QER_BIT1_SR2_35 instead, since SR2 must be
+					* read individually using command code 0x35. */
+					quad = SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35_31;
+				}
+				break;
 			case SPI_FLASH_SFDP_QER_BIT1_SR2_NO_CLR:
 				if ((table->sfdp->vendor == FLASH_ID_WINBOND) &&
 					(FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_W25Q)) {

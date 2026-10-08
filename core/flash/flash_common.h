@@ -90,6 +90,7 @@ enum {
 	FLASH_ID_MT25QU = 0xbb00,	/**< Micron MT25QU flash device IDs. */
 	FLASH_ID_MT35X = 0x5b00,	/**< Micron MT35X flash device IDs. */
 	FLASH_ID_S28HS = 0x5b00,	/**< Infineon S28HS flash device IDs. */
+	FLASH_ID_S25FL064 = 0x6000,	/**< Infineon S25F flash device IDs. */
 };
 
 /**

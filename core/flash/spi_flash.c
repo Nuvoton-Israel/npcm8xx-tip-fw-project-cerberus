@@ -1836,6 +1836,14 @@ int spi_flash_detect_4byte_address_mode (const struct spi_flash *flash)
 			cmd = FLASH_CMD_RDSR3;
 			break;
 
+		case FLASH_ID_SPANSION:
+			/* Spansion/Cypress/Infineon S25FL parts report the current address mode via the ADP
+			 * bit (bit 1) of the configuration register read with command 0x15. */
+			cmd = FLASH_CMD_RDSR3;
+			/* 2nd bit is ADP */
+			mask = 0x01 << 1;
+			break;
+
 		default:
 			return SPI_FLASH_UNSUPPORTED_DEVICE;
 	}

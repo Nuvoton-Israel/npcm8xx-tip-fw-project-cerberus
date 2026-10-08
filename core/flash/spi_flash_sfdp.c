@@ -368,6 +368,13 @@ int spi_flash_sfdp_get_device_capabilities (const struct spi_flash_sfdp_basic_ta
 			*capabilities |= FLASH_CAP_4BYTE_ADDR;
 	}
 
+	/* Devices smaller than 128Mbit (e.g. the Spansion/Cypress/Infineon S25FL064L) do not require
+	 * 4-byte addressing and may not reliably support the 4-byte command set, even when SFDP reports
+	 * "3-or-4-byte" addressing.  Force them onto the 3-byte address path. */
+	if ((params->memory_density + 1) < 0x08000000) {
+		*capabilities &= ~FLASH_CAP_4BYTE_ADDR;
+	}
+
 	return 0;
 }
 
